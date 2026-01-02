@@ -1,0 +1,17 @@
+STUDENT.txt
+
+API yang digunakan untuk pengujian lokal:
+- Mock API: http://localhost:5174
+  Endpoint:
+  - GET  /stories       -> daftar data (Array)
+  - POST /stories       -> tambah data (multipart/form-data): title, description, category, lat, lng, image
+
+Untuk penilaian dengan Story API resmi:
+- Silakan **ubah API Base** melalui field di halaman Beranda (atas daftar). Nilai akan disimpan di localStorage.
+- Atau set via DevTools: localStorage.setItem('API_BASE', 'https://story-api.example.com')
+
+Map service:
+- Menggunakan OpenStreetMap (Leaflet). **Tidak membutuhkan API key**.
+- Jika menggunakan penyedia lain yang membutuhkan key, tuliskan key di bawah ini:
+
+MAPS_API_KEY=
