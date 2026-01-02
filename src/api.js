@@ -1,7 +1,12 @@
 const DEFAULT_BASE = import.meta.env.DEV
-  ? '/v1' // dev: lewat proxy
-  : 'https://story-api.dicoding.dev/v1'; // prod/preview: langsung ke API
-const API_BASE = () => (localStorage.getItem('API_BASE') || DEFAULT_BASE).replace(/\/$/, '');
+  ? '/v1'
+  : 'https://story-api.dicoding.dev/v1';
+
+const API_BASE = () => {
+  const saved = (localStorage.getItem('API_BASE') || DEFAULT_BASE).replace(/\/$/, '');
+  if (!import.meta.env.DEV && saved.startsWith('/')) return 'https://story-api.dicoding.dev/v1';
+  return saved;
+};
 
 const TOKEN_KEY = 'AUTH_TOKEN';
 import 'leaflet/dist/leaflet.css';

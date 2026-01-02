@@ -1,5 +1,6 @@
 /* public/sw.js */
-
+const SCOPE = new URL(self.registration.scope);
+const withBase = (p) => new URL(p.replace(/^\//, ''), SCOPE).toString();
 const VERSION = 'v1';
 const SHELL_CACHE = `shell-${VERSION}`;
 const RUNTIME_CACHE = `runtime-${VERSION}`;
@@ -7,14 +8,17 @@ const API_CACHE = `api-${VERSION}`;
 
 // App shell minimal (Basic)
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/favicon.svg',
-  '/offline.html',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  withBase(''), // scope root (/storyshandy/)
+  withBase('index.html'),
+  withBase('manifest.webmanifest'),
+  withBase('favicon.svg'),
+  withBase('offline.html'),
+  withBase('icons/manifest-icon-192.maskable.png'),
+  withBase('icons/manifest-icon-512.maskable.png'),
+  withBase('screenshots/home-narrow.png'),
+  withBase('screenshots/home-wide.png'),
 ];
+
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -59,12 +63,9 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body,
-    icon: payload.icon || '/favicon.svg',
-    badge: payload.badge || '/favicon.svg',
-    data: {
-      url: storyId ? `/#/story/${storyId}` : '/#/home',
-      storyId,
-    },
+    icon: payload.icon || withBase('favicon.svg'),
+    badge: payload.badge || withBase('favicon.svg'),
+    data: { url: storyId ? withBase(`#/story/${storyId}`) : withBase('#/home') },
     actions: [
       { action: 'open', title: 'Lihat detail' },
       { action: 'close', title: 'Tutup' },
@@ -146,8 +147,10 @@ async function networkFirstForPage(req) {
     if (cached) return cached;
 
     // fallback ke app shell untuk SPA
-    const shell = await caches.match('/index.html');
+    const shell = await caches.match(withBase('index.html'));
     if (shell) return shell;
+    return caches.match(withBase('offline.html'));
+
 
     // fallback offline page
     return caches.match('/offline.html');
