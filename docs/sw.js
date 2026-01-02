@@ -1,7 +1,7 @@
 /* public/sw.js */
 const SCOPE = new URL(self.registration.scope);
 const withBase = (p) => new URL(p.replace(/^\//, ''), SCOPE).toString();
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL_CACHE = `shell-${VERSION}`;
 const RUNTIME_CACHE = `runtime-${VERSION}`;
 const API_CACHE = `api-${VERSION}`;
