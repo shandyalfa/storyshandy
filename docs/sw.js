@@ -149,11 +149,9 @@ async function networkFirstForPage(req) {
     // fallback ke app shell untuk SPA
     const shell = await caches.match(withBase('index.html'));
     if (shell) return shell;
-    return caches.match(withBase('offline.html'));
+     return caches.match(withBase('offline.html'));
 
 
-    // fallback offline page
-    return caches.match('/offline.html');
   }
 }
 
