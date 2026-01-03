@@ -74,8 +74,19 @@ export class StoryView {
           </div>
         </li>`).join('');
       Array.from(list.querySelectorAll('.item')).forEach((el, i) => {
-        el.addEventListener('click', () => this.focusMarker(i));
-        el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.focusMarker(i); } });
+        el.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-save')) return;
+          this.focusMarker(i);
+        });
+
+        el.addEventListener('keydown', (e) => {
+          if (e.target.closest('.btn-save')) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.focusMarker(i);
+          }
+        });
+
       });
     };
     renderList(items);

@@ -14,13 +14,24 @@ export class OfflineView {
         <div class="card">
           <h2>Story Tersimpan</h2>
           <div class="toolbar">
-            <input id="q" placeholder="Cari judul/deskripsi..." value="${escapeHtml(q)}" aria-label="Cari story tersimpan">
-            <select id="sort" aria-label="Urutkan story tersimpan">
+            <label for="q">Cari</label>
+            <input
+              id="q"
+              name="q"
+              placeholder="Cari judul/deskripsi..."
+              value="${escapeHtml(q)}"
+            />
+
+            <label for="sort">Urutkan</label>
+            <select id="sort" name="sort">
               <option value="newest" ${sort === 'newest' ? 'selected' : ''}>Terbaru</option>
               <option value="oldest" ${sort === 'oldest' ? 'selected' : ''}>Terlama</option>
               <option value="title"  ${sort === 'title'  ? 'selected' : ''}>Judul</option>
             </select>
           </div>
+
+
+
 
           <ul class="list" id="savedList">
             ${saved.length ? saved.map(it => `

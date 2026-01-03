@@ -29,11 +29,26 @@ export class StoryPresenter {
     }
   }
   async saveToOffline(id){
+    try{
     const story = this.model.items.find(s => s.id === id);
     if (!story) return alert('Story tidak ditemukan.');
-    await saveStory(story);
+
+    await saveStory({
+      id: story.id,
+      title: story.title,
+      description: story.description,
+      lat: story.lat,
+      lng: story.lng,
+      imageUrl: story.imageUrl,
+      savedAt: Date.now(),
+    });
+
     alert('Tersimpan di Offline (IndexedDB).');
+     } catch(e){
+      alert('Gagal simpan offline: ' + (e.message||e));
+    }
   }
+
 
   getFiltered(cat) { return this.model.filterByCategory(cat); }
 }

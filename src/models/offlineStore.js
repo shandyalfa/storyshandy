@@ -1,131 +1,124 @@
 // src/models/offlineStore.js
-import { openDB, txStore, reqToPromise } from '../utils/idb.js';
-import { createStory, getToken } from '../api.js'; // pastikan ada di atas (kalau belum, tambahkan)
-
+import { openDB } from 'idb';
+import { createStory } from '../api.js';
 
 const DB_NAME = 'spa-map-stories';
 const DB_VERSION = 1;
 
-async function db() {
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains('savedStories')) {
-        db.createObjectStore('savedStories', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('outbox')) {
-        db.createObjectStore('outbox', { keyPath: 'key', autoIncrement: true });
-      }
+const STORE_SAVED = 'savedStories';
+const STORE_OUTBOX = 'outbox';
+
+const dbPromise = openDB(DB_NAME, DB_VERSION, {
+  upgrade(db) {
+    // Saved stories (keyPath: id)
+    if (!db.objectStoreNames.contains(STORE_SAVED)) {
+      const store = db.createObjectStore(STORE_SAVED, { keyPath: 'id' });
+      store.createIndex('savedAt', 'savedAt');
     }
-  });
-}
 
-// ===== BASIC: create/read/delete savedStories =====
-export async function saveStory(story) {
-  const d = await db();
-  const payload = { ...story, savedAt: Date.now() };
-  return txStore(d, 'savedStories', 'readwrite', (s) => reqToPromise(s.put(payload)));
-}
+    // Outbox untuk antrian offline (autoIncrement key)
+    if (!db.objectStoreNames.contains(STORE_OUTBOX)) {
+      const store = db.createObjectStore(STORE_OUTBOX, { keyPath: 'key', autoIncrement: true });
+      store.createIndex('createdAt', 'createdAt');
+    }
+  },
+});
 
+/* =========================
+ *  CRUD: SAVED STORIES
+ * ========================= */
+
+// READ ALL
 export async function getSavedStories() {
-  const d = await db();
-  return txStore(d, 'savedStories', 'readonly', (s) => reqToPromise(s.getAll()));
+  return (await dbPromise).getAll(STORE_SAVED);
 }
 
+// READ ONE (optional)
+export async function getSavedStory(id) {
+  return (await dbPromise).get(STORE_SAVED, id);
+}
+
+// CREATE/UPDATE (pakai put biar id sama tidak error)
+export async function saveStory(story) {
+  const payload = {
+    ...story,
+    savedAt: story.savedAt ?? Date.now(),
+  };
+  return (await dbPromise).put(STORE_SAVED, payload);
+}
+
+// DELETE
 export async function deleteSavedStory(id) {
-  const d = await db();
-  return txStore(d, 'savedStories', 'readwrite', (s) => reqToPromise(s.delete(id)));
+  return (await dbPromise).delete(STORE_SAVED, id);
 }
 
-// ===== ADVANCED nanti: outbox (boleh belum dipakai dulu) =====
-export async function addOutbox(item) {
-  const d = await db();
-  const payload = { ...item, createdAt: Date.now() };
-  return txStore(d, 'outbox', 'readwrite', (s) => reqToPromise(s.add(payload)));
+/* =========================
+ *  CRUD: OUTBOX (offline queue)
+ * ========================= */
+
+export async function addOutbox({ description, lat, lng, imageFile }) {
+  const image =
+    imageFile
+      ? {
+          blob: imageFile instanceof Blob ? imageFile : new Blob([imageFile]),
+          name: imageFile.name || 'photo.jpg',
+          type: imageFile.type || 'image/jpeg',
+        }
+      : null;
+
+  const item = {
+    description,
+    lat,
+    lng,
+    image,
+    createdAt: Date.now(),
+  };
+
+  return (await dbPromise).add(STORE_OUTBOX, item);
 }
 
 export async function getOutbox() {
-  const d = await db();
-  return txStore(d, 'outbox', 'readonly', (s) => reqToPromise(s.getAll()));
+  return (await dbPromise).getAll(STORE_OUTBOX);
 }
 
 export async function deleteOutbox(key) {
-  const d = await db();
-  return txStore(d, 'outbox', 'readwrite', (s) => reqToPromise(s.delete(key)));
+  return (await dbPromise).delete(STORE_OUTBOX, key);
 }
+
+/**
+ * Kirim semua item outbox saat sudah online.
+ * Return: { total, sent, failed }
+ */
 export async function syncOutbox() {
-    function toFile(x, fallbackName = 'photo.jpg') {
-  if (!x) return null;
-  if (x instanceof File) return x;
-  if (x instanceof Blob) return new File([x], fallbackName, { type: x.type || 'image/jpeg' });
-  return null;
-}
+  const db = await dbPromise;
+  const items = await db.getAll(STORE_OUTBOX);
 
-function pickImageFile(it) {
-  // format A: imageFile langsung
-  const f1 = toFile(it.imageFile, it.imageName || 'photo.jpg');
-  if (f1) return f1;
-
-  // format B: image: { blob, name, type }
-  const blob = it.image?.blob;
-  if (blob) {
-    const name = it.image?.name || 'photo.jpg';
-    const file = toFile(blob, name);
-    return file;
-    }
-
-    return null;
-    }
-  if (!navigator.onLine) return { sent: 0, total: 0, failed: 0 };
-
-  const items = await getOutbox();
-  const res = { sent: 0, total: items.length, failed: 0 };
+  let sent = 0;
+  let failed = 0;
 
   for (const it of items) {
     try {
-      // kalau item dibuat saat login, tapi sekarang token hilang → stop
-      if (it.requiresAuth && !getToken()) {
-        throw new Error('Butuh login untuk sync outbox.');
-      }
+      const file =
+        it.image?.blob
+          ? (it.image.blob instanceof File
+              ? it.image.blob
+              : new File([it.image.blob], it.image.name || 'photo.jpg', { type: it.image.type || it.image.blob.type }))
+          : null;
 
-      const blob = it.image?.blob;
-        let imageFile;
-
-        if (blob) {
-        if (blob instanceof File) {
-            imageFile = blob;
-        } else {
-            imageFile = new File([blob], it.image.name || 'photo.jpg', {
-            type: it.image.type || blob.type || 'image/jpeg'
-            });
-        }
-        }
-
-        if (!imageFile) {
-        throw new Error('Item outbox tidak punya foto, tidak bisa di-sync.');
-        }
-
-        await createStory({
+      await createStory({
         description: it.description,
         lat: Number(it.lat),
         lng: Number(it.lng),
-        imageFile
-        });
+        imageFile: file,
+      });
 
-
-    await createStory({
-        description: it.description,
-        lat: Number(it.lat),
-        lng: Number(it.lng),
-        imageFile
-    });
-
-      await deleteOutbox(it.key);
-      res.sent++;
+      await db.delete(STORE_OUTBOX, it.key);
+      sent++;
     } catch (e) {
-      res.failed++;
-      break;
+      failed++;
+      // biarkan tetap di outbox supaya bisa dicoba lagi
     }
   }
 
-  return res;
+  return { total: items.length, sent, failed };
 }

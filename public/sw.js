@@ -1,7 +1,7 @@
 /* public/sw.js */
 const SCOPE = new URL(self.registration.scope);
 const withBase = (p) => new URL(p.replace(/^\//, ''), SCOPE).toString();
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL_CACHE = `shell-${VERSION}`;
 const RUNTIME_CACHE = `runtime-${VERSION}`;
 const API_CACHE = `api-${VERSION}`;
@@ -149,11 +149,9 @@ async function networkFirstForPage(req) {
     // fallback ke app shell untuk SPA
     const shell = await caches.match(withBase('index.html'));
     if (shell) return shell;
-    return caches.match(withBase('offline.html'));
+     return caches.match(withBase('offline.html'));
 
 
-    // fallback offline page
-    return caches.match('/offline.html');
   }
 }
 

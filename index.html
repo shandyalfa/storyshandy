@@ -67,17 +67,21 @@
   <body>
     <a class="skip-link" href="#main">Lewati ke konten</a>
     <header class="header" role="banner">
-      <nav aria-label="Navigasi utama" class="nav">
+      <nav class="nav" aria-label="Navigasi utama">
         <a class="brand" href="#/home">SPA Map Stories</a>
-        <nav>
+
+        <div class="nav-links" role="navigation" aria-label="Menu">
           <a href="#/home">Beranda</a>
           <a href="#/add">Tambah Data</a>
           <a id="authLink" href="#/login">Masuk</a>
           <a href="#/offline">Offline</a>
+        </div>
 
-        </nav>
+        <div class="nav-right" id="navRight" aria-label="Pengaturan"></div>
       </nav>
     </header>
+
+
     <main id="main" tabindex="-1" class="container" aria-live="polite"></main>
     <footer class="footer" role="contentinfo">
       <p>© 2025 SPA Map Stories • Dibuat untuk asesmen.</p>

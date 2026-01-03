@@ -6,12 +6,9 @@ export function initNav(){
   if (!link) return;
 
   // Advanced: tombol enable/disable push (tanpa edit HTML)
-  ensurePushToggleUI(link);
 
-  // init toggle push
-  initPushToggle({
-    vapidPublicKey: import.meta.env.VITE_VAPID_PUBLIC_KEY,
-  });
+  ensurePushToggleUI(link);
+  initPushToggle({ vapidPublicKey: import.meta.env.VITE_VAPID_PUBLIC_KEY });
 
   const refresh = () => {
     const loggedIn = !!getToken();

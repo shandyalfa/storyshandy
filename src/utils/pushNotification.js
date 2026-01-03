@@ -7,32 +7,32 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
-async function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return null;
-  return navigator.serviceWorker.register('/sw.js');
-}
-
 async function getReadyRegistration() {
-  await registerServiceWorker();
-  return navigator.serviceWorker.ready;
+  const base = import.meta.env.BASE_URL || '/';     // "/storyshandy/" saat deploy
+  const swUrl = `${base}sw.js`;                     // "/storyshandy/sw.js"
+
+  // ambil yang sudah ada dulu biar gak dobel
+  let reg = await navigator.serviceWorker.getRegistration(base);
+  if (!reg) reg = await navigator.serviceWorker.register(swUrl, { scope: base });
+
+  return reg;
 }
 
-// inject UI toggle tanpa perlu edit HTML
-export function ensurePushToggleUI(authLinkEl) {
+export function ensurePushToggleUI() {
   if (document.querySelector('#pushToggle')) return;
 
   const wrap = document.createElement('div');
   wrap.className = 'push-setting';
   wrap.innerHTML = `
-    <label for="pushToggle" style="display:inline-flex; gap:.5rem; align-items:center;">
+    <label for="pushToggle">
       <input type="checkbox" id="pushToggle" />
       Push Notification
     </label>
-    <span id="pushStatus" role="status" aria-live="polite" style="margin-left:.5rem;"></span>
+    <span id="pushStatus" role="status" aria-live="polite"></span>
   `;
 
-  const parent = authLinkEl?.parentElement || document.body;
-  parent.insertBefore(wrap, authLinkEl?.nextSibling || null);
+  const slot = document.querySelector('#navRight');
+  (slot || document.body).appendChild(wrap);
 }
 
 export async function initPushToggle({
@@ -42,10 +42,7 @@ export async function initPushToggle({
 } = {}) {
   const checkbox = document.querySelector(checkboxSelector);
   const statusEl = document.querySelector(statusSelector);
-
-  const setStatus = (msg) => {
-    if (statusEl) statusEl.textContent = msg;
-  };
+  const setStatus = (msg) => statusEl && (statusEl.textContent = msg);
 
   if (!checkbox) return;
 
@@ -63,6 +60,7 @@ export async function initPushToggle({
 
   const reg = await getReadyRegistration();
   const existingSub = await reg.pushManager.getSubscription();
+
   checkbox.checked = !!existingSub;
   setStatus(existingSub ? 'Push aktif.' : 'Push nonaktif.');
 
@@ -92,7 +90,7 @@ export async function initPushToggle({
         setStatus('Push nonaktif.');
       }
     } catch (err) {
-      checkbox.checked = !checkbox.checked; // rollback UI biar aman
+      checkbox.checked = !checkbox.checked;
       setStatus(`Error: ${err.message}`);
     }
   });

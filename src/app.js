@@ -41,9 +41,14 @@ router.init();
 initNav();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(()=>{});
+    const base = import.meta.env.BASE_URL; // "/storyshandy/"
+    navigator.serviceWorker.register(`${base}sw.js`, { scope: base }).then((reg) => {
+      reg.update();
+    });
+
   });
 }
+
 async function autoSync(){
   if (!navigator.onLine) return;
   try {
